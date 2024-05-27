@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { getItemById, getItems, deleteItemById } from '../libs/fetchUtils.js';
+import { getItemById, getItems, deleteItemById , updateTaskLimit} from '../libs/fetchUtils.js';
 import TaskDetail from '../views/TaskDetail.vue';
 import AddTask from '../views/AddTask.vue';
 import EditTask from '../views/EditTask.vue';
@@ -21,8 +21,11 @@ const indexDelete = ref(0);
 const isLimitEnabled = ref(false);
 const maxTasks = ref(10);
 
+
 const baseUrlTask = `${import.meta.env.VITE_BASE_URL_MAIN}/tasks`;
 const baseUrlStatus = `${import.meta.env.VITE_BASE_URL_MAIN}/statuses`;
+const baseUrlLimit = `${import.meta.env.VITE_BASE_URL_MAIN}/statuses/limit`;
+const baseUrlLimitMax = `${import.meta.env.VITE_BASE_URL_MAIN}/statuses/maximumtask`;
 
 const taskStore = useTasks();
 onMounted(async () => {
@@ -171,8 +174,19 @@ const openNewStatus = () => {
 };
 
 // ----------------------- Limit ---------------------------
-const toggleLimit = () => {
-  taskStore.setLimitEnabled(isLimitEnabled.value);
+const openLimitModal = () => {
+  document.getElementById('my_modal_limit').showModal();
+};
+
+const toggleLimit = async () => {
+  try {
+    const url = `${import.meta.env.VITE_BASE_URL_MAIN}/statuses/maximumtask`;
+    const updatedLimit = await updateTaskLimit(url, maxTasks.value, isLimitEnabled.value);
+    taskStore.setLimitEnabled(updatedLimit.isLimitEnabled);
+    taskStore.setMaxTasks(updatedLimit.maxTasks);
+  } catch (error) {
+    console.error('Failed to update task limit:', error);
+  }
 };
 </script>
 
@@ -205,71 +219,70 @@ const toggleLimit = () => {
   </div>
 
   <div class="flex mt-9 mx-auto ml-[100px]">
-    <!-- LIMIT -->
-    <button
-      class="itbkk-status-setting btn mr-2 mt-1"
-      style="border-radius: 30px; background-color: #aff3c9"
-      onclick="my_modal_limit.showModal()"
+   <!-- LIMIT -->
+  <button
+    class="itbkk-status-setting btn mr-2 mt-1"
+    style="border-radius: 30px; background-color: #aff3c9"
+    @click="openLimitModal"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      class="h-4 w-4"
+      fill="none"
+      viewBox="0 0 14 14"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-4 w-4"
-        fill="none"
-        viewBox="0 0 14 14"
-      >
-        <path
-          fill="white"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M13.43 3.59a.76.76 0 0 0-.35-.51l-2 2a1 1 0 0 1-1.44 0l-.76-.68a1 1 0 0 1 0-1.4l2-2a.76.76 0 0 0-.48-.43A3.8 3.8 0 0 0 6.26 6L.8 11.41a1 1 0 0 0 0 1.43l.36.36a1 1 0 0 0 1.43 0l5.46-5.45a3.81 3.81 0 0 0 5.38-4.16Z"
+      <path
+        fill="white"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M13.43 3.59a.76.76 0 0 0-.35-.51l-2 2a1 1 0 0 1-1.44 0l-.76-.68a1 1 0 0 1 0-1.4l2-2a.76.76 0 0 0-.48-.43A3.8 3.8 0 0 0 6.26 6L.8 11.41a1 1 0 0 0 0 1.43l.36.36a1 1 0 0 0 1.43 0l5.46-5.45a3.81 3.81 0 0 0 5.38-4.16Z"
+      />
+    </svg>
+  </button>
+  <dialog id="my_modal_limit" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box" style="max-width: 400px">
+      <h3 class="font-bold text-lg" style="color: #9391e4">
+        Status Settings
+      </h3>
+      <p class="py-4">
+        User can limit the number of tasks in status by setting the Maximum
+        task in each status
+        <br /><span style="color: #eb4343"
+          >( except "No Status" and "Done" statuses )</span
+        >
+      </p>
+      <div class="flex items-center mt-4">
+        <span class="mr-2">Limit tasks in this status</span>
+        <input
+          type="checkbox"
+          class="itbkk-limit-task toggle"
+          v-model="isLimitEnabled"
+          @change="toggleLimit"
         />
-      </svg>
-    </button>
-    <dialog id="my_modal_limit" class="modal modal-bottom sm:modal-middle">
-      <div class="modal-box" style="max-width: 400px">
-        <h3 class="font-bold text-lg" style="color: #9391e4">
-          Status Settings
-        </h3>
-        <p class="py-4">
-          User can limit the number of tasks in status by setting the Maximum
-          task in each status
-          <br /><span style="color: #eb4343"
-            >( except "No Status" and "Done" statuses )</span
-          >
-        </p>
-        <div class="flex items-center mt-4">
-          <span class="mr-2">Limit tasks in this status</span>
-          <input
-            type="checkbox"
-            class="itbkk-limit-task toggle"
-            v-model="isLimitEnabled"
-            @change="toggleLimit"
-          />
-        </div>
-
-        <div v-if="isLimitEnabled" class="mt-4 flex flex-col items-center">
-          <div class="flex items-center justify-center">
-            <label for="status-limit" class="mr-2">Set Maximum Tasks</label>
-          </div>
-          <input
-            type="number"
-            id="status-limit"
-            class="input input-bordered input-centered"
-            v-model.number="maxTasks"
-            @input="taskStore.setMaxTasks(maxTasks)"
-            max="30"
-          />
-        </div>
-
-        <div class="modal-action">
-          <form method="dialog">
-            <button class="btn mr-2 bg-green-400 text-w">Confirm</button>
-            <button class="btn">Close</button>
-          </form>
-        </div>
       </div>
-    </dialog>
+
+      <div v-if="isLimitEnabled" class="mt-4 flex flex-col items-center">
+        <div class="flex items-center justify-center">
+          <label for="status-limit" class="mr-2">Set Maximum Tasks</label>
+        </div>
+        <input
+          type="number"
+          id="status-limit"
+          class="input input-bordered input-centered"
+          v-model.number="maxTasks"
+          max="30"
+        />
+      </div>
+
+      <div class="modal-action">
+        <form method="dialog">
+          <button class="btn mr-2 bg-green-400 text-w">Confirm</button>
+          <button class="btn">Close</button>
+        </form>
+      </div>
+    </div>
+  </dialog>
     <!-- FILTER -->
     <details class="dropdown">
       <summary class="itbkk-status-filter m-1 btn" style="border-radius: 30px">

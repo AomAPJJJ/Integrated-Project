@@ -10,6 +10,11 @@ async function getItems(url) {
     console.log(`error: ${error}`)
   }
 }
+
+
+
+
+
 async function getItemById(id) {
   if (id > 0) {  try {
     console.log("id : ", id)
@@ -84,6 +89,33 @@ async function editItem(url, id, editItem) {
   }
 }
 
+async function updateTaskLimit(url, maximumTask, isLimit) {
+  try {
+    console.log(`Sending data to ${url}:`, { maximumTask, isLimit });
+
+    const res = await fetch(`${url}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        maximumTask,
+        isLimit
+      })
+    })
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! Status: ${res.status}`)
+    }
+
+    const updatedLimit = await res.json()
+    return updatedLimit
+
+  } catch (error) {
+    console.error(`Error: ${error}`)
+  }
+}
+
 
 export {
   getItems,
@@ -91,5 +123,6 @@ export {
   deleteItemById,
   addItem,
   editItem,
-  deleteItemAndTransfer
+  deleteItemAndTransfer,
+  updateTaskLimit,
 }
